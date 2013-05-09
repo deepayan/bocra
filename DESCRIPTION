@@ -1,0 +1,10 @@
+Package: bocra
+Version: 0.4-1
+Date: 2006/02/13
+Title: Optical Character Recognition for the Bengali Script
+Author: Deepayan Sarkar
+Maintainer: Deepayan Sarkar <deepayan.sarkar@gmail.com>
+Description: Reference implementation of some OCR ideas, 
+  using the idea of contour alignment
+Depends: R (>= 2.0.0)
+License: GPL version 2 or later
