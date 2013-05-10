@@ -1,68 +1,63 @@
 
+## FIXME: add minimum required consecutive pixels to be above
+## threshold, and use center rather than max.
 
-library(qtbase)
-library(qtutils)
-
-img  <-  Qt$QImage("small.jpg")
-
-## Rest of code assumes 8-bit grayscale, so check:
-img$format() == Qt$QImage$Format_Indexed8
-img$isGrayscale()
-
-ipixmap <- Qt$QPixmap$fromImage(img)
-
-## qscene
-
-scene <- Qt$QGraphicsScene()
-scene$addPixmap(ipixmap)
-
-view <- Qt$QGraphicsView(scene)
-
-
-## img$invertPixels()
-## ipixmap$convertFromImage(img)
-
-qimage2matrix <- function(img)
-{
-    x <- matrix(0L, img$width(), img$height())
-    for (i in seq_len(nrow(x)))
-        for (j in seq_len(ncol(x)))
-        {
-            x[i, j] <- img$pixelIndex(i-1L, j-1L)
-        }
-    x / 255
-}
-
-imat <- qimage2matrix(img) # slow
-
-image(imat, ylim = c(1, 0))
-
-
-identifyGaps <- function(x)
+identifyGaps <- function(x, threshold = 0.75)
 {
     ## background white, so find stretches of high average color, and
     ## and compute midpoint of runs
 
-    i <- x > 0.75
+    i <- x > threshold
     w <- which(i)
     changePoints <- w[1 + which(diff(w) != 1)]
     i <- as.numeric(i)
     for (k in changePoints) i[k:length(i)] <- i[k:length(i)] + 1L
     x <- x[w]
     i <- i[w]
-    tapply(x, list(i), which.max) + c(1L, changePoints) - 1L
+    as.vector(tapply(x, list(i), which.max) + c(1L, changePoints) - 1L)
 }
 
-plot(colMeans(imat), type = "l")
-abline(v = identifyGaps(colMeans(imat)))
 
+identifyWords <- function(x, line.thres = 0.75, word.thres = 0.9) # x is [0,1] matrix
+{
+    lineBreaks <- identifyGaps(colMeans(x), threshold = line.thres)
+    ilines <- lapply(seq_len(length(lineBreaks) - 1),
+                     function(i) seq(lineBreaks[i], lineBreaks[i+1]))
+    getWordBreaks <- function(iline)
+    {
+        y <- x[, iline, drop = FALSE]
+        wordBreaks <- identifyGaps(rowMeans(y), threshold = word.thres)
+        wordBreaks
+    }
+    list(lineBreaks = lineBreaks,
+         wordBreaks = lapply(ilines, getWordBreaks))
+}
 
-lineBreaks <- identifyGaps(colMeans(imat))
-for (y in lineBreaks) scene$addLine(0, y, scene$width()-1, y, Qt$QPen(qcolor("red")))
-
-
-
-
-
-
+saveWords <- function(x, breaks = identifyWords(x),
+                      outdir = stop("Specify folder name"),
+                      max.aspect = 1)
+{
+    ## words are usually short and wide.  Since our current word
+    ## detection is error prone, we remove some false words by
+    ## filtering on aspect ratio.
+    saveWord <- function(w, line, word) # w is a sub-matrix of x
+    {
+        if (ncol(w) / nrow(w) < max.aspect)
+        {
+            save(w, file = file.path(outdir, sprintf("w_%04d_%04d.rda", line, word)))
+        }
+    }
+    for (i in seq_along(breaks$wordBreaks))
+    {
+        wb <- breaks$wordBreaks[[i]]
+        if (length(wb) > 1)
+        {
+            for (j in seq_len(length(wb)-1))
+            {
+                w <- x[wb[j]:wb[j+1] , with(breaks, lineBreaks[i]:lineBreaks[i+1])]
+                saveWord(w, i, j)
+            }
+        }
+    }
+}
 
