@@ -5,4 +5,8 @@ useDynLib(bocra, .registration = TRUE)
 
 export(read.qimage, qimage2matrix)
 
-export(identifyGaps)
+export(identifyGaps, identifyWords, saveWords)
+
+export(dimage)
+
+
