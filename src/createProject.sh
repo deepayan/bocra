@@ -20,7 +20,7 @@ TEMPLATE = lib
 
 # HEADERS += 
 
-SOURCES += init.c imports.cpp biwtDerivative.c
+SOURCES += init.c imports.cpp biwtDerivative.c matra.c
 SOURCES += qimage.cpp
 
 INCLUDEPATH += ${R_INCLUDE_DIR}
