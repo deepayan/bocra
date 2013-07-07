@@ -15,14 +15,16 @@ locateMatra <- function(x)
 ##' .. content for \details{} ..
 ##' @title 
 ##' @param x transformed data containing the 0-1 pixel grey value matrix
+##' @param matraPos Position of matra
 ##' @param startPoint minimum requirement of staying in black pixel
 ##' @param endPoint maximum tolerance limit of staying in black pixel
 ##' @param reEnterPoint number of pixels required to re-enter in black pixel
 ##' @return Locations where matra should be deleted?
 ##' @author Kaustav Nandy
-deleteMatraPosition <- function(x, startPoint = 0, endPoint = 3, reEnterPoint = 25)
+deleteMatraPosition <-
+    function(x, matraPos = locateMatra(x),
+             startPoint = 0, endPoint = 3, reEnterPoint = 25)
 {
-    matraPos <- locateMatra(x)
     fm <- .Call("segment", x, nrow(x), ncol(x), matraPos, 1, 2, 3)
     tmp1 <- which(fm$leaveBlack >= matraPos + startPoint &
                   fm$leaveBlack <= matraPos + endPoint)
@@ -52,8 +54,8 @@ removeMatra <-
     locations <- locations[locations > 0]
     for (i in locations)
     {
-        data[ (matraPos - verPixDel) : (matraPos + verPixDel), i ] <- 0
+        x[ (matraPos - verPixDel) : (matraPos + verPixDel), i ] <- 0
     }
-    data
+    x
 }
 

@@ -7,7 +7,7 @@ export(read.qimage, qimage2matrix)
 
 export(identifyGaps, identifyWords, saveWords)
 
-export(deleteMatraPosition, removeMatra)
+export(deleteMatraPosition, removeMatra, locateMatra)
 
 export(dimage)
 
