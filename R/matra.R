@@ -16,22 +16,29 @@ locateMatra <- function(x)
 ##' @title 
 ##' @param x transformed data containing the 0-1 pixel grey value matrix
 ##' @param matraPos Position of matra
-##' @param startPoint minimum requirement of staying in black pixel
-##' @param endPoint maximum tolerance limit of staying in black pixel
-##' @param reEnterPoint number of pixels required to re-enter in black pixel
+##' @param startPoint Minimum number of pixels within which we have to
+##' exit black to consider this position as part of the matra.
+##' Usually should be 0 or possibly a small negative integer.
+##' @param endPoint The maximum number of pixels within which we have
+##' to exit black to consider this position as part of the matra.
+##' Should be expected thickness of the matra.
+##' @param reEnterPoint Number of pixels within which we should not
+##' re-encounter a black pixel if this is part of the matra.  This
+##' should be slighly less than the font height (from matra downwards).
 ##' @return Locations where matra should be deleted?
 ##' @author Kaustav Nandy
 deleteMatraPosition <-
     function(x, matraPos = locateMatra(x),
-             startPoint = 0, endPoint = 3, reEnterPoint = 25)
+             startPoint = -1, endPoint = 3, reEnterPoint = 25)
 {
     fm <- .Call("segment", x, nrow(x), ncol(x), matraPos, 1, 2, 3)
-    tmp1 <- which(fm$leaveBlack >= matraPos + startPoint &
-                  fm$leaveBlack <= matraPos + endPoint)
-    tmp2 <- which(fm$reEnterBlack == -1 | fm$reEnterBlack >= reEnterPoint)
-    sg <- intersect(tmp1, tmp2)
-    tm <- .Call("detectDeletePortion", as.integer(sg), length(sg), 0)
-    sg * tm
+    sg <-
+        with(fm, (leaveBlack >= matraPos + startPoint &
+                  leaveBlack <= matraPos + endPoint &
+                  (reEnterBlack == -1 | reEnterBlack >= matraPos + reEnterPoint)))
+    ## tm <- .Call("detectDeletePortion", as.integer(sg), length(sg), 0)
+    ## sg * tm
+    sg
 }
 
 
@@ -52,10 +59,9 @@ removeMatra <-
              verPixDel = 2)
 {
     locations <- locations[locations > 0]
-    for (i in locations)
-    {
-        x[ (matraPos - verPixDel) : (matraPos + verPixDel), i ] <- 0
-    }
+    from <- max(1, matraPos - verPixDel)
+    to <- min(nrow(x), matraPos + verPixDel)
+    x[from:to, locations] <- 0
     x
 }
 

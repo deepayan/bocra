@@ -30,27 +30,28 @@ SEXP segment(SEXP data, SEXP srow, SEXP scol, SEXP RmatraPosition,
     preEnterBlack = INTEGER_POINTER(reEnterBlack);
 
     for(i = 0; i < ncol; i++) {
+	/* Image coding: black=printed pixel=1, white=background=0.  
+
+	   i is the current (vertical) column (row=matraPosition is
+	   fixed).  The goal is to find the pixel positions where we
+	   first leave black, and then reenter black (if any).
+
+	   If the starting position is already white, then
+	   leaveBlack=0.  If we never reenter black, then
+	   reenterBlack=-1.
+	*/
 	pleaveBlack[i] = 0;
 	preEnterBlack[i] = 0;
 
+	j = matraPosition;
 	if (cdata[matraPosition + i * nrow - 1] == 1) {
-	    j = matraPosition;
-	    while (j < nrow && cdata[i * nrow + j] == 1) {
-		j++;
-	    }
+	    while (j < nrow && cdata[i * nrow + j] == 1) j++;
 	    pleaveBlack[i] = j;
 	    j++;
-
-	    while(j < nrow && cdata[i * nrow + j] == 0) {
-		j++;
-	    }
-
-	    if(j < nrow && cdata[i * nrow + j] == 1)
-		preEnterBlack[i] = j;
-
-	    else if (j == nrow)
-		preEnterBlack[i] = -1;
 	}
+	while (j < nrow && cdata[i * nrow + j] == 0) j++;
+	if (j < nrow) preEnterBlack[i] = j;
+	else preEnterBlack[i] = -1;
     }
     for(i = 0; i < 2; i++) {
 	SET_STRING_ELT(Rnames, i, mkChar(names[i]));
