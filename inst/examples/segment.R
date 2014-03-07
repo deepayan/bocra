@@ -26,6 +26,12 @@ imat01 <- ifelse(imat > 0.5, 1, 0)
 ## plot(colMeans(imat01), type = "l")
 ## abline(v = identifyGaps(colMeans(imat), 0.75))
 
+if (FALSE)
+{
+    ipixmap <- Qt$QPixmap$fromImage(matrix2qimage(colors = imat01))
+}
+
+
 scene$clear()
 scene$addPixmap(ipixmap)
 
@@ -62,6 +68,24 @@ for (i in seq_along(breaks$wordBreaks))
         }
     }
 }
+
+
+ipixmap <- Qt$QPixmap$fromImage(matrix2qimage(colors = imat01))
+scene$clear()
+scene$addPixmap(ipixmap)
+
+for (y in breaks$lineBreaks)
+    scene$addLine(0, y, scene$width()-1, y, Qt$QPen(qcolor("red")))
+
+for (i in seq_along(breaks$wordBreaks))
+{
+    for (x in breaks$wordBreaks[[i]])
+        scene$addLine(x, breaks$lineBreaks[i], x, breaks$lineBreaks[i+1],
+                      Qt$QPen(qcolor("red")))
+}
+
+
+
 
 pdf("segmented-example.pdf", width = 10, height = 7)
 levelplot(t(imat01), useRaster = TRUE, col.regions = grey.colors)

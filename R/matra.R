@@ -65,3 +65,12 @@ removeMatra <-
     x
 }
 
+
+identifyComponents <- function(x) 
+{
+    ans <- .Call("componentsRosenfeld", ncol(x), nrow(x))
+    ans[ans == 0] <- NA
+    dim(ans) <- dim(x)
+    ans
+}
+

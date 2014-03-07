@@ -103,3 +103,104 @@ SEXP detectDeletePortion(SEXP array, SEXP n, SEXP tolLevel)
     UNPROTECT(1);
     return deletePortion;
 }
+
+
+/* Identify connected components after matra deletion */
+
+struct Nbor {
+    int row;
+    int col;
+};
+
+typedef struct Nbor nbor;
+
+SEXP componentsRosenfeld(SEXP data, SEXP scol, SEXP srow);
+void negate(int *plabel, int *cdata, int n);
+void find_component(int *plabel, int ind, int nrow, int ncol);
+void search(int *plabel, int ind, int i, int j, int nrow);
+void neighbor(nbor *nset, int i, int j);
+
+/* FIXME: don't need nrow/ncol to be presepcified */
+SEXP componentsRosenfeld(SEXP data, SEXP scol, SEXP srow)
+{
+    int nrow, ncol, *plabel, *cdata, ind = 0;
+
+    SEXP label;
+
+    nrow = asInteger(srow);
+    ncol = asInteger(scol);
+    cdata = INTEGER(asInteger(data));
+
+    PROTECT(label = allocVector(INTSXP, ncol * nrow));
+    plabel = INTEGER_POINTER(label);
+
+    negate(plabel, cdata, nrow * ncol);
+    find_component(plabel, ind, nrow, ncol);
+    UNPROTECT(1);
+    return label;
+}
+
+void negate(int *plabel, int *cdata, int n) 
+{
+    int i;
+    for(i = 0; i < n; i++) plabel[i] = -cdata[i];
+    return;
+}
+
+void find_component(int *plabel, int ind, int nrow, int ncol) 
+{
+    int i, j;
+    for(i = 1; i < nrow - 1; i++) {
+	for(j = 1; j < ncol - 1; j++) {
+	    if(plabel[j * nrow + i] == -1) {
+		ind++;
+		search(plabel, ind, i, j, nrow);
+	    }
+	}
+    }
+    return;
+}
+
+
+void search(int *plabel, int ind, int i, int j, int nrow)
+{
+    int k;
+    static nbor nset[8];
+    neighbor(nset, i, j);
+    plabel[j * nrow + i] = ind;
+    for(k = 0; k < 8; k++) {
+	if(plabel[nset[k].row + nset[k].col * nrow] == -1) 
+	    search(plabel, ind, nset[k].row, nset[k].col, nrow);
+    }
+    return;
+}
+
+
+void neighbor(nbor *nset, int i, int j) 
+{
+    nset[0].col = (j - 1);
+    nset[0].row = i;
+
+    nset[1].col = (j - 1);
+    nset[1].row = (i - 1);
+
+    nset[2].col = (j - 1);
+    nset[2].row = (i + 1);
+
+    nset[3].col = (j + 1);
+    nset[3].row = i;
+
+    nset[4].col = (j + 1);
+    nset[4].row = (i + 1);
+
+    nset[5].col = (j + 1);
+    nset[5].row = (i - 1);
+
+    nset[6].col = j;
+    nset[6].row = (i - 1);
+
+    nset[7].col = j;
+    nset[7].row = (i + 1);
+
+    return;
+}

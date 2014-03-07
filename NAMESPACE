@@ -3,11 +3,9 @@ import(qtbase)
 
 useDynLib(bocra, .registration = TRUE)
 
-export(read.qimage, qimage2matrix)
-
 export(identifyGaps, identifyWords, saveWords)
 
-export(deleteMatraPosition, removeMatra, locateMatra)
+export(deleteMatraPosition, removeMatra, locateMatra, identifyComponents)
 
 export(dimage)
 
