@@ -107,100 +107,49 @@ SEXP detectDeletePortion(SEXP array, SEXP n, SEXP tolLevel)
 
 /* Identify connected components after matra deletion */
 
-struct Nbor {
-    int row;
-    int col;
-};
-
-typedef struct Nbor nbor;
-
 SEXP componentsRosenfeld(SEXP data, SEXP scol, SEXP srow);
-void negate(int *plabel, int *cdata, int n);
-void find_component(int *plabel, int ind, int nrow, int ncol);
-void search(int *plabel, int ind, int i, int j, int nrow);
-void neighbor(nbor *nset, int i, int j);
 
-/* FIXME: don't need nrow/ncol to be presepcified */
-SEXP componentsRosenfeld(SEXP data, SEXP scol, SEXP srow)
+
+SEXP identifyComponents(SEXP sx, SEXP scol, SEXP srow)
 {
-    int nrow, ncol, *plabel, *cdata, ind = 0;
-
-    SEXP label;
-
-    nrow = asInteger(srow);
-    ncol = asInteger(scol);
-    cdata = INTEGER(asInteger(data));
-
-    PROTECT(label = allocVector(INTSXP, ncol * nrow));
-    plabel = INTEGER_POINTER(label);
-
-    negate(plabel, cdata, nrow * ncol);
-    find_component(plabel, ind, nrow, ncol);
+    SEXP 
+	ans = PROTECT(duplicate(sx)),
+	d = getAttrib(sx, R_DimSymbol);
+    int nrow = INTEGER(d)[0], 
+	ncol = INTEGER(d)[1],
+	n = nrow * ncol,
+	*x = INTEGER(asInteger(sx)),
+	*l = INTEGER(asInteger(ans)),
+	c = 0, i;
+    for (i = 0; i < n; i++) l[i] = -x[i]; /* 0 -> 0, 1 -> -1 */
+    /* Assumes that in x, 1 is foreground and 0 is background.  The
+       idea is that l[i,j] stores 0 for background, -1 for unflagged,
+       and c > 0 for component number c. */
+    for (i = 0; i < n; i++) 
+	if (l[i] == -1) { /* unflagged */
+	    c++;
+	    dfs_visit(l, i, c, nrow, ncol);
+	}
     UNPROTECT(1);
-    return label;
+    return ans;
 }
 
-void negate(int *plabel, int *cdata, int n) 
+void dfs_visit(int *l, int i, int c, int m, int n)
 {
-    int i;
-    for(i = 0; i < n; i++) plabel[i] = -cdata[i];
-    return;
-}
+    /* Proceed only if we are within bounds and unflagged */
+    int ii = i / m, jj = i % m;
 
-void find_component(int *plabel, int ind, int nrow, int ncol) 
-{
-    int i, j;
-    for(i = 1; i < nrow - 1; i++) {
-	for(j = 1; j < ncol - 1; j++) {
-	    if(plabel[j * nrow + i] == -1) {
-		ind++;
-		search(plabel, ind, i, j, nrow);
-	    }
+    if (l[i] == -1) {
+	l[i] = c;
+	/* Run through neighbours */
+	if (ii > 0 && ii < m-1 && jj > 0 && jj < n-1) { /* non-boundary */
+	    /* 4-neighbours only for now */
+	    dfs_visit(l, i-1, c, m, n);
+	    dfs_visit(l, i+1, c, m, n);
+	    dfs_visit(l, i-m, c, m, n);
+	    dfs_visit(l, i+m, c, m, n);
 	}
     }
-    return;
 }
 
 
-void search(int *plabel, int ind, int i, int j, int nrow)
-{
-    int k;
-    static nbor nset[8];
-    neighbor(nset, i, j);
-    plabel[j * nrow + i] = ind;
-    for(k = 0; k < 8; k++) {
-	if(plabel[nset[k].row + nset[k].col * nrow] == -1) 
-	    search(plabel, ind, nset[k].row, nset[k].col, nrow);
-    }
-    return;
-}
-
-
-void neighbor(nbor *nset, int i, int j) 
-{
-    nset[0].col = (j - 1);
-    nset[0].row = i;
-
-    nset[1].col = (j - 1);
-    nset[1].row = (i - 1);
-
-    nset[2].col = (j - 1);
-    nset[2].row = (i + 1);
-
-    nset[3].col = (j + 1);
-    nset[3].row = i;
-
-    nset[4].col = (j + 1);
-    nset[4].row = (i + 1);
-
-    nset[5].col = (j + 1);
-    nset[5].row = (i - 1);
-
-    nset[6].col = j;
-    nset[6].row = (i - 1);
-
-    nset[7].col = j;
-    nset[7].row = (i + 1);
-
-    return;
-}
