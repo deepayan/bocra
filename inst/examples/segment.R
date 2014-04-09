@@ -85,6 +85,17 @@ for (i in seq_along(breaks$wordBreaks))
 }
 
 
+getWord <- function(x = imat01, breaks, line, word)
+{
+    i <- line; j <- word
+    wb <- breaks$wordBreaks[[line]]
+    wrows <- wb[j]:wb[j + 1]
+    wcols <- with(breaks, lineBreaks[i]:lineBreaks[i + 1])
+    1 - t(imat01[wrows, wcols])
+}
+
+image(identifyComponents(getWord(image01, breaks, 2, 3)))
+
 
 
 pdf("segmented-example.pdf", width = 10, height = 7)
