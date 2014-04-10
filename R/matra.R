@@ -66,11 +66,12 @@ removeMatra <-
 }
 
 
-identifyComponents <- function(x) 
+findComponents <- function(x) 
 {
-    ans <- .Call("componentsRosenfeld", ncol(x), nrow(x))
-    ans[ans == 0] <- NA
-    dim(ans) <- dim(x)
+    storage.mode(x) <- "integer"
+    ans <- .Call("identifyComponents", x)
+    ## ans[ans == 0L] <- NA
+    ## dim(ans) <- dim(x)
     ans
 }
 

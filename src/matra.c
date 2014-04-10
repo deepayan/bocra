@@ -1,6 +1,11 @@
+#include <string.h>
+
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
+
+void dfs_visit(int *l, int i, int c, int m, int n);
+void zero_boundary(int *l, int nrow, int ncol);
 
 
 SEXP segment(SEXP data, SEXP srow, SEXP scol, SEXP RmatraPosition, 
@@ -65,67 +70,58 @@ SEXP segment(SEXP data, SEXP srow, SEXP scol, SEXP RmatraPosition,
 }
 
 
-
-
 SEXP detectDeletePortion(SEXP array, SEXP n, SEXP tolLevel)
 {
     SEXP deletePortion;
     int *parray, pn, ptolLevel, *pdeletePortion,
 	i, j, indicator;
-
     parray = INTEGER(array);
     pn = asInteger(n);
     ptolLevel = asInteger(tolLevel);
-
     PROTECT(deletePortion = allocVector(INTSXP, pn));
     pdeletePortion = INTEGER_POINTER(deletePortion);
-
     for (i = 0; i < pn; i++) {
 	pdeletePortion[i] = 0;
     }
-
     for (i = 0; i < pn - ptolLevel; i++) {
 	indicator = 1;
-
 	for (j = 1; j <= ptolLevel; j++) {
 	    if(parray[i + j] != parray[i] + j) {
 		indicator = 0;
 		j = ptolLevel + 1;
 	    }
 	}
-
 	if (indicator == 1) {
 	    pdeletePortion[i] = 1;
 	    i = i + ptolLevel;
 	}
     }
-
     UNPROTECT(1);
     return deletePortion;
 }
 
-
 /* Identify connected components after matra deletion */
 
-SEXP componentsRosenfeld(SEXP data, SEXP scol, SEXP srow);
-
-
-SEXP identifyComponents(SEXP sx, SEXP scol, SEXP srow)
+SEXP identifyComponents(SEXP sx)
 {
     SEXP 
 	ans = PROTECT(duplicate(sx)),
 	d = getAttrib(sx, R_DimSymbol);
     int nrow = INTEGER(d)[0], 
 	ncol = INTEGER(d)[1],
-	n = nrow * ncol,
-	*x = INTEGER(asInteger(sx)),
-	*l = INTEGER(asInteger(ans)),
+	npixel = nrow * ncol,
+	*x = INTEGER(sx),
+	*l = INTEGER(ans),
 	c = 0, i;
-    for (i = 0; i < n; i++) l[i] = -x[i]; /* 0 -> 0, 1 -> -1 */
+    for (i = 0; i < npixel; i++) l[i] = -x[i]; /* 0 -> 0, 1 -> -1 */
     /* Assumes that in x, 1 is foreground and 0 is background.  The
        idea is that l[i,j] stores 0 for background, -1 for unflagged,
        and c > 0 for component number c. */
-    for (i = 0; i < n; i++) 
+    /* FIXME: To simplify code in dfs_visit, we ignore the
+       boundary. This is unlikely to matter much, because the boundary
+       probably doesn't have any ink anyway.  */
+    zero_boundary(l, nrow, ncol);
+    for (i = 0; i < npixel; i++) 
 	if (l[i] == -1) { /* unflagged */
 	    c++;
 	    dfs_visit(l, i, c, nrow, ncol);
@@ -134,11 +130,21 @@ SEXP identifyComponents(SEXP sx, SEXP scol, SEXP srow)
     return ans;
 }
 
+void zero_boundary(int *l, int nrow, int ncol)
+{
+    int ii, jj;
+    memset((void*) l, 0, nrow * sizeof(int)); 
+    memset((void*) (l + nrow * (ncol - 1)), 0, nrow * sizeof(int)); 
+    /* for (jj = 1; jj < ncol-1; jj++) l[jj * nrow] = l[jj * nrow + nrow - 1] = 0; (straightforward) */
+    for (jj = 1; jj < ncol; jj++) l[jj * nrow] = l[jj * nrow - 1] = 0;
+    return;
+}
+
+
 void dfs_visit(int *l, int i, int c, int m, int n)
 {
     /* Proceed only if we are within bounds and unflagged */
-    int ii = i / m, jj = i % m;
-
+    int ii = i % m, jj = i / m;
     if (l[i] == -1) {
 	l[i] = c;
 	/* Run through neighbours */
@@ -150,6 +156,7 @@ void dfs_visit(int *l, int i, int c, int m, int n)
 	    dfs_visit(l, i+m, c, m, n);
 	}
     }
+    return;
 }
 
 

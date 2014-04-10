@@ -5,5 +5,5 @@ Title: Optical Character Recognition for the Bengali Script
 Author: Deepayan Sarkar
 Maintainer: Deepayan Sarkar <deepayan.sarkar@gmail.com>
 Description: Prototypes of some experimental ideas for performing Bengali OCR 
-Depends: R (>= 2.0.0), qtutils (>= 0.2-2)
+Depends: R (>= 2.0.0)
 License: GPL >= 2

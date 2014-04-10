@@ -1,4 +1,5 @@
 library(lattice)
+library(qtutils)
 library(bocra)
 
 img <- Qt$QImage("/home/deepayan/Dropbox/OCR_samples/gupibagha/page01-processed.png")
@@ -13,8 +14,8 @@ scene$addPixmap(ipixmap)
 
 (view <- Qt$QGraphicsView(scene))
 
-view$scale(2, 2)
-view$scale(1/2, 1/2)
+## view$scale(2, 2)
+## view$scale(1/2, 1/2)
 view$setDragMode(Qt$QGraphicsView$ScrollHandDrag)
 
 imat <- qimage2matrix(img)
@@ -91,10 +92,38 @@ getWord <- function(x = imat01, breaks, line, word)
     wb <- breaks$wordBreaks[[line]]
     wrows <- wb[j]:wb[j + 1]
     wcols <- with(breaks, lineBreaks[i]:lineBreaks[i + 1])
-    1 - t(imat01[wrows, wcols])
+    1 - (imat01[wrows, rev(wcols)])
 }
 
-image(identifyComponents(getWord(image01, breaks, 2, 3)))
+levelplot(findComponents(getWord(image01, breaks, 2, 3)))
+
+
+component.list <- function(w)
+{
+    c <- findComponents(w)
+    n <- max(c, na.rm = TRUE)
+    lapply(seq_len(n),
+           function(i) {
+               tmp <- (c == i) # logical
+               rtmp <- range(row(tmp)[tmp])
+               ctmp <- range(col(tmp)[tmp])
+               ## 0 + tmp[rtmp[1]:rtmp[2], ctmp[1]:ctmp[2], drop = FALSE]
+               0 + tmp[rtmp[1]:rtmp[2], , drop = FALSE]
+           })
+}
+
+## cl <- component.list(getWord(image01, breaks, 2, 3))
+
+cl <- list()
+
+for (line in seq_along(breaks$wordBreaks))
+{
+    for (word in seq_len(length(breaks$wordBreaks[[line]]) - 1))
+    {
+        print(c(line, word))
+        cl <- c(cl, component.list(getWord(image01, breaks, line, word)))
+    }
+}
 
 
 
